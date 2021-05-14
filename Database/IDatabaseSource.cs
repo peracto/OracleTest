@@ -1,9 +1,9 @@
-﻿using System.Threading.Tasks;
-using System;
+﻿using System;
+using System.Threading.Tasks;
 
-namespace OracleTest
+namespace OracleTest.Database
 {
-    interface IDatabaseSource : IDisposable
+    internal interface IDatabaseSource : IDisposable
     {
         Task<IReaderWriter> CreateReader(string sql);
     }

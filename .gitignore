@@ -490,3 +490,4 @@ msbuild.wrn
 *.dll
 *.pdb
 
+/OracleTest.sln.DotSettings

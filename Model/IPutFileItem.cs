@@ -1,6 +1,6 @@
-﻿namespace Snowflake.FileStream
+﻿namespace OracleTest.Model
 {
-    public interface IPutFileItem
+    internal interface IPutFileItem
     {
         string Filename { get; }
         string Key { get; }

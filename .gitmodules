@@ -1,0 +1,10 @@
+[submodule "lib/snowflake-connector-net"]
+	path = lib/snowflake-connector-net
+	url = https://github.com/peracto/snowflake-connector-net.git
+	branch = fix-netcore-externalbrowserauth
+[submodule "lib/snowflake-file-extensions"]
+	path = lib/snowflake-file-extensions
+	url = https://github.com/peracto/snowflake-file-extensions.git
+[submodule "lib/pipeline"]
+	path = lib/pipeline
+	url = https://github.com/peracto/pipeline.git

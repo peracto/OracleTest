@@ -1,8 +1,8 @@
-﻿using Snowflake.FileStream;
+﻿using OracleTest.Database;
 
-namespace OracleTest
+namespace OracleTest.Model
 {
-    class DataSourceFile  : PutFileItem
+    internal class DataSourceFile  : PutFileItem
     {
         public readonly DataSource DataSource;
         public readonly int RowCount;

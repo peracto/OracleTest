@@ -1,36 +1,39 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
+using System.Threading;
 using System.Threading.Tasks;
+using Bourne.Common.Pipeline;
+using OracleTest.IO;
+using OracleTest.Model;
 using Snowflake.FileStream;
 using Snowflake.FileStream.Model;
-using System.Threading;
-using System.IO.Compression;
 
-namespace OracleTest
+namespace OracleTest.Tasks
 {
-    class CompressPipelineTask : PipelineTaskBase<DataSourceFile, IReflectPipelineTask<DataSourceFile>>
+    internal class ProcessPipelineTask : PipelineTaskBase<DataSourceFile, IReflectPipelineTask<DataSourceFile>>
     {
         private readonly SnowflakeCredential _snowflakeCredential;
         private DateTime _nextCredential = DateTime.MinValue;
-        private SnowflakePutResponse response;
-        private IPutFile putClient;
+        private SnowflakePutResponse _response;
+        private IPutFile _putClient;
 
         public static IPipelineTask<DataSourceFile, IReflectPipelineTask<DataSourceFile>> Create(SnowflakeCredential snowflakeCredential, Action<IReflectPipelineTask<DataSourceFile>> callback)
         {
-            return new CompressPipelineTask(snowflakeCredential, callback);
+            return new ProcessPipelineTask(snowflakeCredential, callback);
         }
 
-        private CompressPipelineTask(SnowflakeCredential snowflakeCredential, Action<IReflectPipelineTask<DataSourceFile>> callback) : base(callback)
+        private ProcessPipelineTask(SnowflakeCredential snowflakeCredential, Action<IReflectPipelineTask<DataSourceFile>> callback) : base(callback)
         {
             _snowflakeCredential = snowflakeCredential;
         }
 
         private async Task RenewCredentials()
         {
-            response = await _snowflakeCredential.DoIt();
+            _response = await _snowflakeCredential.DoIt();
             _nextCredential = DateTime.Now.AddSeconds(60 * 15);
-            if (putClient != null) putClient.Dispose();
-            putClient = PutFiles.Create(response);
+            _putClient?.Dispose();
+            _putClient = PutFiles.Create(_response);
         }
 
         public override async Task Execute(DataSourceFile dataSourceFile)
@@ -40,23 +43,22 @@ namespace OracleTest
 
             var file = dataSourceFile.Filename;
 
-            var inputFile = response.SourceCompression != "none" && response.AutoCompress && !FileHelpers.IsCompressed(file)
-                          ? await CompressFile(file, response.SourceCompression)
+            var inputFile = _response.SourceCompression != "none" && _response.AutoCompress && !FileHelpers.IsCompressed(file)
+                          ? await CompressFile(file, _response.SourceCompression)
                           : file;
 
             var encryptFile = await EncryptFile(inputFile);
 
-            Output(new OutputFile(dataSourceFile, putClient, file, inputFile, encryptFile));
+            Output(new OutputFile(dataSourceFile, _putClient, file, inputFile, encryptFile));
         }
 
         private static async Task<string> CompressFile(string filename, string compressionType)
         {
             var outfile = Path.GetTempFileName();
 
-            using var originalFileStream = File.OpenRead(filename);
-            using var compressedFileStream = File.OpenWrite(outfile);
-
-            using Stream stream = compressionType switch
+            await using var originalFileStream = File.OpenRead(filename);
+            await using var compressedFileStream = File.OpenWrite(outfile);
+            await using Stream stream = compressionType switch
             {
                 "brotli" => new BrotliStream(compressedFileStream, CompressionMode.Compress),
                 _ => new GZipStream(compressedFileStream, CompressionMode.Compress),
@@ -69,7 +71,7 @@ namespace OracleTest
         private Task<string> EncryptFile(string filename)
         {
             var encryptFile = Path.GetTempFileName();
-            return putClient.Crypto.EncryptFile(
+            return _putClient.Crypto.EncryptFile(
                 filename,
                 encryptFile
              ).ContinueWith(e => encryptFile);
@@ -82,9 +84,9 @@ namespace OracleTest
             private string IntermediateFilename { get; }
             private string TransferFilename { get; }
 
-            public DataSourceFile DataSourceFile {get;}
+            private DataSourceFile DataSourceFile {get;}
 
-            public IPutFile PutFile { get; }
+            private IPutFile PutFile { get; }
 
             public OutputFile(DataSourceFile file, IPutFile putFile, string originalFilename, string intermediateFilename, string transferFilename)
             {
@@ -95,25 +97,19 @@ namespace OracleTest
                 PutFile = putFile;
             }
 
-            public Task Execute(CancellationToken token)
-            {
-                return PutFile.Put(
+            public Task Execute(CancellationToken token) =>
+                PutFile.Put(
                     TransferFilename,
                     Path.GetFileName(OriginalFilename),
                     FileHelpers.GetSha256Digest(IntermediateFilename),
                     token
-                    );
-            }
+                );
 
-            public DataSourceFile GetReflect()
-            {
-                return DataSourceFile;
-            }
+            public DataSourceFile GetReflect() => 
+                DataSourceFile;
 
-            public override string ToString()
-            {
-                return OriginalFilename;
-            }
+            public override string ToString() => 
+                OriginalFilename;
         }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using System.IO;
 
-namespace Snowflake.FileStream
+namespace OracleTest.Model
 {
-    public class PutFileItem : IPutFileItem
+    internal class PutFileItem : IPutFileItem
     {
         public PutFileItem(string filename, string key)
         {

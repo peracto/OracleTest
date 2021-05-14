@@ -10,9 +10,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\source\repos\peracto\snowflake-connector-net\Snowflake.Data\Snowflake.Data.csproj" />
-    <ProjectReference Include="..\..\..\..\source\repos\peracto\snowflake-file-extensions\snowflake-file-extensions\snowflake-file-extensions.csproj" />
-    <ProjectReference Include="..\Bourne.Common\Bourne.Common.csproj" />
+    <ProjectReference Include="lib\pipeline\Bourne.Common.csproj" />
+    <ProjectReference Include="lib\snowflake-connector-net\Snowflake.Data\Snowflake.Data.csproj" />
+    <ProjectReference Include="lib\snowflake-file-extensions\snowflake-file-extensions\snowflake-file-extensions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="lib\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="lib\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="lib\**" />
   </ItemGroup>
 
 </Project>

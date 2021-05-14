@@ -1,10 +1,8 @@
-﻿using Snowflake.Data.Client;
-using Snowflake.FileStream.Model;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace OracleTest
 {
-    class Program
+    static class Program
     {
         static Task Main(string[] args)
         {

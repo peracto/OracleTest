@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
+using Bourne.Common.Pipeline;
+using OracleTest.Model;
 
-
-namespace OracleTest
+namespace OracleTest.Tasks
 {
-    class ResolvePipelineTask : PipelineTaskBase<DataSourceFile, DataSourceFile>
+    internal class ResolvePipelineTask : PipelineTaskBase<DataSourceFile, DataSourceFile>
     {
         public static IPipelineTask<DataSourceFile, DataSourceFile> Create(
             Action<DataSourceFile> callback
@@ -21,7 +20,8 @@ namespace OracleTest
 
         public override Task Execute(DataSourceFile slice)
         {
-            Console.WriteLine($"Resolved:::{slice.Filename}");
+            Console.WriteLine($@"Resolved:::{slice.Filename}");
+            slice.DataSource.ReleaseRef();
             return Task.FromResult(1);
         }
     }

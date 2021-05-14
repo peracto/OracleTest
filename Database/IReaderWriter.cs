@@ -2,9 +2,9 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace OracleTest
+namespace OracleTest.Database
 {
-    interface IReaderWriter : IDisposable
+    internal interface IReaderWriter : IDisposable
     {
         bool Read();
         Task<bool> ReadAsync();

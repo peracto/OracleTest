@@ -1,9 +1,9 @@
-﻿using System.Threading.Tasks;
-using Snowflake.FileStream.Model;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Snowflake.Data.Client;
-using System.Threading;
+using Snowflake.FileStream.Model;
 
-namespace OracleTest
+namespace OracleTest.IO
 {
     public class SnowflakeCredential
     {

@@ -1,10 +1,9 @@
 ﻿using Oracle.ManagedDataAccess.Client;
 using System.Threading.Tasks;
-using System;
 
 namespace OracleTest.Database.Oracle
 {
-    class OracleDatabaseSource : IDatabaseSource 
+    internal class OracleDatabaseSource : IDatabaseSource 
     {
         public static IDatabaseSource Create(string connectionString)
         {
@@ -13,7 +12,7 @@ namespace OracleTest.Database.Oracle
             return new OracleDatabaseSource(con);
         }
 
-        private OracleConnection _connection;
+        private readonly OracleConnection _connection;
         private OracleDatabaseSource(OracleConnection connection)
         {
             _connection = connection;
@@ -21,7 +20,7 @@ namespace OracleTest.Database.Oracle
 
         async Task<IReaderWriter> IDatabaseSource.CreateReader(string sql)
         {
-            using var cmd = _connection.CreateCommand();
+            await using var cmd = _connection.CreateCommand();
             cmd.CommandText = sql;
             cmd.FetchSize = 1024 * 1024 * 20; // 1MB
             var rdr = await cmd.ExecuteReaderAsync();
@@ -30,7 +29,7 @@ namespace OracleTest.Database.Oracle
 
         public void Dispose()
         {
-            if (_connection != null) _connection.Dispose();
+            _connection?.Dispose();
         }
     }
 }

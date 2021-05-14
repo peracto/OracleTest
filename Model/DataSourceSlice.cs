@@ -1,6 +1,8 @@
-﻿namespace OracleTest
+﻿using OracleTest.Database;
+
+namespace OracleTest.Model
 {
-    class DataSourceSlice
+    internal class DataSourceSlice
     {
         public readonly string SourceGroup;
         public readonly string Query;

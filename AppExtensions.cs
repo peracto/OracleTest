@@ -2,21 +2,21 @@
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Bourne.Common.Pipeline;
 
 namespace OracleTest
 {
     internal static class AppExtensions
     {
-        public static PipelineAggregator<T> CreatePipelineTasks<T, TR>(this PipelineQueue<T> queue, int count, Func<IPipelineTask<T, TR>> task)
+        public static PipelineAggregator<T> CreatePipelineTasks<T, TR>(this IPipelineQueue<T> queue, int count, Func<IPipelineTask<T, TR>> pipeFactory)
         {
             return new PipelineAggregator<T>(
                 queue,
                 Enumerable
                     .Range(1, count)
-                    .Select(i => task())
-                    .Select(i => Task.Run(async () => await queue.Subscribe(i.Execute)))
+                    .Select(i => pipeFactory())
+                    .Select(i => Task.Run(async () => await queue.Subscribe(i)))
             );
         }
 

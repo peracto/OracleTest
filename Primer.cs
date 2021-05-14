@@ -1,28 +1,34 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Bourne.Common.Pipeline;
+using OracleTest.Database;
+using OracleTest.Model;
 
 namespace OracleTest
 {
-    static class Primer
+    internal static class Primer
     {
-        public static void Prime(PipelineQueue<DataSourceSlice> queue)
+        public static void Prime(DataSourceController controller, PipelineQueue<DataSourceSlice> queue)
         {
-            foreach (var query in GetDataSlices(GetSources()))
+            foreach (var query in GetDataSlices(GetSources(controller)))
                 queue.Enqueue(query);
         }
 
-        static IEnumerable<DataSource> GetSources()
+        private static IEnumerable<DataSource> GetSources(DataSourceController controller)
         {
-            yield return new DataSource("SCV_BUTLINS", "BOOKING_GUEST");
+            yield return new DataSource(controller, "SCV_BUTLINS", "BOOKING_GUEST");
         }
 
-        static IEnumerable<DataSourceSlice> GetDataSlices(IEnumerable<DataSource> dataSources)
+        private static IEnumerable<DataSourceSlice> GetDataSlices(IEnumerable<DataSource> dataSources)
         {
             foreach (var dataSource in dataSources)
             {
                 var queries = dataSource.CreateQueries(10).ToList();
                 for (var i = 0; i < queries.Count; i++)
+                {
+                    dataSource.AddRef();
                     yield return new DataSourceSlice(dataSource, $"{dataSource.FullName}_{i + 1:D3}", queries[i]);
+                }
             }
 
             /*
