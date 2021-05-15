@@ -9,11 +9,11 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.0.18" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="lib\snowflake-connector-net\Snowflake.Data\Snowflake.Data.csproj" />
-    <ProjectReference Include="lib\snowflake-file-extensions\snowflake-file-extensions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
