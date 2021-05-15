@@ -1,15 +1,12 @@
-using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using Newtonsoft.Json;
 
-namespace OracleTest {
+namespace Bourne.BatchLoader {
 
     internal static class FileHelpers
     {
-        public static bool IsCompressed(string file)
-            => file.EndsWith(".gz") || file.EndsWith(".brotli") || file.EndsWith(".br");
-
         public static string GetSha256Digest(string path)
         {
             using var stream = File.OpenRead(path);

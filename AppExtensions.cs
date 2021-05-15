@@ -1,25 +1,35 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Bourne.Common.Pipeline;
+using Bourne.BatchLoader.Pipeline;
 
-namespace OracleTest
+namespace Bourne.BatchLoader
 {
     internal static class AppExtensions
     {
-        public static PipelineAggregator<T> CreatePipelineTasks<T, TR>(this IPipelineQueue<T> queue, int count, Func<IPipelineTask<T, TR>> pipeFactory)
+        public static Task[] CreatePump<TIn, TOut>(
+            this PipelineQueue<TIn> queue, int threadCount,
+            Func<IPipelineTask<TIn, TOut>> pipeFactory,
+            Action<TOut> action)
         {
-            return new PipelineAggregator<T>(
-                queue,
-                Enumerable
-                    .Range(1, count)
-                    .Select(i => pipeFactory())
-                    .Select(i => Task.Run(async () => await queue.Subscribe(i)))
-            );
+            var tasks = new Task[threadCount];
+            for (var i = 0; i < threadCount; i++)
+            {
+                tasks[i] = Task.Run(async () =>
+                {
+                    var p = pipeFactory();
+                    await p.Start();
+                    await foreach (var item in queue.GetConsumingEnumerable())
+                    {
+                        var result = await p.Execute(item);
+                        action?.Invoke(result);
+                    }
+                    await p.End();
+                });
+            }
+            return tasks;
         }
-
 
         public static void FastWrite(this TextWriter writer, int value)
         {
@@ -118,7 +128,6 @@ namespace OracleTest
                 a = v;
             }
         }
-
 
         public static void TextWrite(this TextWriter writer, string s)
         {

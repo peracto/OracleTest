@@ -1,20 +1,15 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Bourne.Common.Pipeline;
-using OracleTest.Database;
-using OracleTest.Model;
+using Bourne.BatchLoader.Model;
+using Bourne.BatchLoader.Pipeline;
 
-namespace OracleTest.Tasks
+namespace Bourne.BatchLoader.Tasks
 {
-    internal class ResolvePipelineTask : PipelineTaskBase<DataSource, DataSource>
+    internal class ResolvePipelineTask : PipelineTaskBase<DataSource, int>
     {
-        public ResolvePipelineTask(Action<DataSource> callback) : base(callback)
+        public override Task<int> Execute(DataSource slice)
         {
-        }
-
-        public override Task Execute(DataSource slice)
-        {
-            Console.WriteLine($@"Resolved:::{slice.FullName}");
+            Console.WriteLine($@"Resolved:::{slice.LifetimeKey}");
             return Task.FromResult(1);
         }
     }

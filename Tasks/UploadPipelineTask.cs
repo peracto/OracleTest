@@ -1,25 +1,22 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Bourne.Common.Pipeline;
+using Bourne.BatchLoader.Model;
+using Bourne.BatchLoader.Pipeline;
 
-namespace OracleTest.Tasks
+namespace Bourne.BatchLoader.Tasks
 {
-    internal class UploadPipelineTask : PipelineTaskBase<OutputFile, OutputFile>
+    internal class UploadPipelineTask : PipelineTaskBase<UploadItem, UploadItem>
     {
-        public UploadPipelineTask(Action<OutputFile> callback) : base(callback)
+        public override async Task<UploadItem> Execute(UploadItem file)
         {
-        }
-
-        public override async Task Execute(OutputFile file)
-        {
-            await file.PutFile.Put(
-               file.Filename,
-               file.BucketKey,
-               file.Digest,
-               CancellationToken.None
-           );
-            Output(file);
+            await file.Storage.Put(
+                file.Filename,
+                file.BucketKey,
+                file.Digest,
+                CancellationToken.None
+            );
+            return file;
         }
     }
 }

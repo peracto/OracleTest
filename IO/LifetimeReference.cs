@@ -2,13 +2,12 @@
 using System.Collections.Concurrent;
 using System.Threading;
 
-namespace OracleTest.Tasks
+namespace Bourne.BatchLoader.IO
 {
     public class LifetimeReference<T>
     {
-        private ConcurrentDictionary<T, LifetimeCounter> _dict = new ConcurrentDictionary<T, LifetimeCounter>();
-        private Action<T> _trigger;
-
+        private readonly ConcurrentDictionary<T, LifetimeCounter> _dict = new ConcurrentDictionary<T, LifetimeCounter>();
+        private readonly Action<T> _trigger;
 
         public LifetimeReference(Action<T> trigger)
         {

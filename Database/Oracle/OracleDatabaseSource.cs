@@ -1,7 +1,7 @@
-﻿using Oracle.ManagedDataAccess.Client;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Oracle.ManagedDataAccess.Client;
 
-namespace OracleTest.Database.Oracle
+namespace Bourne.BatchLoader.Database.Oracle
 {
     internal class OracleDatabaseSource : IDatabaseSource 
     {

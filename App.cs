@@ -1,97 +1,139 @@
-﻿using OracleTest.Database.Oracle;
-using System;
-using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Bourne.Common.Pipeline;
-using OracleTest.Database;
-using OracleTest.IO;
-using OracleTest.Model;
-using OracleTest.Tasks;
+using Bourne.BatchLoader.Database;
+using Bourne.BatchLoader.Database.Oracle;
+using Bourne.BatchLoader.IO;
+using Bourne.BatchLoader.Model;
+using Bourne.BatchLoader.Pipeline;
+using Bourne.BatchLoader.Tasks;
 using Snowflake.Data.Client;
-using System.Linq;
 
-namespace OracleTest
+namespace Bourne.BatchLoader
 {
-    static class App
+    internal static class App
     {
         public static async Task Execute(string cs, string os)
         {
             var now = DateTime.Now;
 
-            var snowflakeConnection = await CreateSnowflakeConnection(cs);
+            await using var snowflakeConnection = await CreateSnowflakeConnection(cs);
             using var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
             using var databaseConnection = OracleDatabaseSource.Create(os);
 
-            using var tablesQueue = new PipelineQueue<DataSourceSlice>(token);
-            using var processQueue = new PipelineQueue<DataSourceFile>(token);
-            using var uploadQueue = new PipelineQueue<OutputFile>(token);
-            using var resolveQueue = new PipelineQueue<DataSource>(token);
-
             var sources = Primer.GetSources().ToDictionary(k => k.LifetimeKey);
 
-            var lifetimeController = new LifetimeReference<string>(
-                v => resolveQueue.Enqueue(sources[v])
-            );
+            using var tablesQueue = new PipelineQueue<DataSourceSlice>(token);
+            using var processQueue = new PipelineQueue<DataSourceFile>(token);
+            using var uploadQueue = new PipelineQueue<UploadItem>(token);
+            using var resolveQueue = new PipelineQueue<DataSource>(token);
 
-            var sfCred = new SnowflakeCredentialManager(snowflakeConnection);
-
-            var tableTasks = tablesQueue.CreatePipelineTasks(
-                count: 4,
-                pipeFactory: () => new ExportPipelineTask(
+            await DoIt(
+                new StorageManager(snowflakeConnection),
+                databaseConnection,
+                sources,
+                tablesQueue,
+                processQueue,
+                uploadQueue,
+                resolveQueue,
+                new LifetimeReference<string>(
                     // ReSharper disable once AccessToDisposedClosure
-                    connection: databaseConnection,
-                    // ReSharper disable once AccessToDisposedClosure
-                    callback: file => {
-                        lifetimeController.AddRef(file.LifetimeKey);
-                        processQueue.Enqueue(file);
-                    },
-                    trigger: slice => lifetimeController.Release(slice.LifetimeKey),
-                    feedback: (q, f, a, b, s) =>
-                    {
-                        if (s) Console.WriteLine(@"{0,-40}:Read {1,16} reader:{2,16}", q.DataSource.FullName, a, b);
-                    }
-                )
+                    v => resolveQueue.Enqueue(sources[v])
+                ),
+                token
             );
-
-            var compressTasks = processQueue.CreatePipelineTasks(
-                count: 1,
-                pipeFactory: () => new ProcessPipelineTask(
-                    sfCred,
-                    // ReSharper disable once AccessToDisposedClosure
-                    callback: batch => uploadQueue.Enqueue(batch)
-                )
-            );
-
-            var uploadTasks = uploadQueue.CreatePipelineTasks(
-                count: 4,
-                pipeFactory: () => new UploadPipelineTask(
-                    // ReSharper disable once AccessToDisposedClosure
-                    callback: batch => lifetimeController.Release(batch.LifetimeKey)
-                )
-            );
-
-            var resolveTasks = resolveQueue.CreatePipelineTasks(
-                count: 1,
-                pipeFactory: () => new ResolvePipelineTask(
-                    callback: batch => Console.WriteLine($@"**************** Done File {batch}")
-                )
-            );
-
-
-            foreach (var item in Primer.Prime(sources.Values))
-            {
-                lifetimeController.AddRef(item.LifetimeKey);
-                tablesQueue.Enqueue(item);
-            }
-
-            await tableTasks.WaitAll();
-            await compressTasks.WaitAll();
-            await uploadTasks.WaitAll();
-            await resolveTasks.WaitAll();
-
             Console.WriteLine($@"start:{now} end:{DateTime.Now} diff:{DateTime.Now - now}");
+        }
+
+        private static async Task DoIt(
+            StorageManager credentialManager,
+            IDatabaseSource databaseConnection,
+            IDictionary<string, DataSource> sources,
+            PipelineQueue<DataSourceSlice> tablesQueue,
+            PipelineQueue<DataSourceFile> processQueue,
+            PipelineQueue<UploadItem> uploadQueue,
+            PipelineQueue<DataSource> resolveQueue,
+            LifetimeReference<string> lifetimeController,
+            CancellationToken token
+        )
+        {
+            var tableTasks = tablesQueue.CreatePump(
+                pipeFactory: () => new ExportPipelineTask(
+                    connection: databaseConnection,
+                    feedback: state =>
+                    {
+                        switch (state.State)
+                        {
+                            case ExportPipelineTask.ExportFeedbackState.Start:
+                                break;
+                            case ExportPipelineTask.ExportFeedbackState.Active:
+                                Console.Out.WriteLine(
+                                    $@"{state.Filename,-40}:Rows:{state.RowCount:16}:TotalRows:{state.TotalRowCount,16}"
+                                );
+                                break;
+                            case ExportPipelineTask.ExportFeedbackState.Complete:
+                                Console.Out.WriteLine(
+                                    $@"{state.Filename,-40}:Rows:{state.RowCount:16}:TotalRows:{state.TotalRowCount,16}"
+                                );
+                                lifetimeController.AddRef(state.DataSourceSlice.LifetimeKey);
+                                processQueue.Enqueue(
+                                    new DataSourceFile(
+                                        state.Filename,
+                                        state.DataSourceSlice.LifetimeKey,
+                                        state.RowCount)
+                                );
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                    }
+                ),
+                threadCount: 4,
+                action: slice => lifetimeController.Release(slice.LifetimeKey)
+            );
+
+            var processTasks = processQueue.CreatePump(
+                pipeFactory: () => new ProcessPipelineTask(credentialManager),
+                threadCount: 1,
+                action: batch => uploadQueue.Enqueue(batch)
+            );
+
+            var uploadTasks = uploadQueue.CreatePump(
+                pipeFactory: () => new UploadPipelineTask(),
+                threadCount: 4,
+                action: batch => lifetimeController.Release(batch.LifetimeKey)
+            );
+
+            var resolveTasks = resolveQueue.CreatePump(
+                pipeFactory: () => new ResolvePipelineTask(),
+                threadCount: 1,
+                action: batch => Console.WriteLine($@"**************** Done File {batch}")
+            );
+
+            await Task.Run(
+                () =>
+                {
+                    foreach (var item in Primer.Prime(sources.Values))
+                    {
+                        lifetimeController.AddRef(item.LifetimeKey);
+                        tablesQueue.Enqueue(item);
+                    }
+
+                    tablesQueue.Complete();
+                },
+                token
+            );
+
+            await Task.WhenAll(tableTasks);
+            processQueue.Complete();
+            await Task.WhenAll(processTasks);
+            uploadQueue.Complete();
+            await Task.WhenAll(uploadTasks);
+            resolveQueue.Complete();
+            await Task.WhenAll(resolveTasks);
         }
 
         private static async Task<SnowflakeDbConnection> CreateSnowflakeConnection(string cs)

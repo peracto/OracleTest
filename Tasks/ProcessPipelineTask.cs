@@ -1,49 +1,52 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
-using Bourne.Common.Pipeline;
-using OracleTest.IO;
-using OracleTest.Model;
+using Bourne.BatchLoader.IO;
+using Bourne.BatchLoader.Model;
+using Bourne.BatchLoader.Pipeline;
 using Snowflake.FileStream;
 
-namespace OracleTest.Tasks
+namespace Bourne.BatchLoader.Tasks
 {
-    internal class ProcessPipelineTask : PipelineTaskBase<DataSourceFile, OutputFile>
+    internal class ProcessPipelineTask : PipelineTaskBase<DataSourceFile, UploadItem>
     {
-        private readonly SnowflakeCredentialManager _snowflakeCredential;
-        private IPutFile _putClient = null;
+        private readonly StorageManager _storage;
+        private IPutFile _storageClient;
 
-        public ProcessPipelineTask(SnowflakeCredentialManager snowflakeCredential, Action<OutputFile> callback) : base(callback)
+        public ProcessPipelineTask(StorageManager storage) 
         {
-            _snowflakeCredential = snowflakeCredential;
+            _storage = storage;
         }
 
-        public override async Task Execute(DataSourceFile dataSourceFile)
+        public override async Task<UploadItem> Execute(DataSourceFile dataSourceFile)
         {
-            if (_putClient == null || _putClient.IsExpired)
-                _putClient = await _snowflakeCredential.Renew();
+            if (_storageClient == null || _storageClient.IsExpired)
+                _storageClient = await _storage.Renew();
 
             var file = dataSourceFile.Filename;
 
-            var inputFile = _putClient.IsCompressed
-                          ? await CompressFile(file, _putClient.SourceCompression)
-                          : file;
+            var inputFile = _storageClient.IsCompressed
+                ? await CompressFile(file, _storageClient.SourceCompression)
+                : file;
 
-            var encryptFile = await _putClient.EncryptFile(
+            var encryptFile = await _storageClient.EncryptFile(
                 inputFile,
                 Path.GetTempFileName()
             );
 
             var digest = FileHelpers.GetSha256Digest(inputFile);
 
-            Output(new OutputFile(
-                putFile: _putClient,
+            File.Delete(file);
+            if (file != inputFile)
+                File.Delete(inputFile);
+            
+            return new UploadItem(
+                storage: _storageClient,
                 lifetimeKey: dataSourceFile.LifetimeKey,
                 bucketKey: Path.GetFileName(file),
                 digest: digest,
                 filename: encryptFile
-            ));
+            );
         }
 
         private static async Task<string> CompressFile(string filename, string compressionType)
@@ -61,6 +64,5 @@ namespace OracleTest.Tasks
             await originalFileStream.CopyToAsync(stream);
             return outfile;
         }
-
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace OracleTest.Database
+namespace Bourne.BatchLoader.Database
 {
     internal interface IDatabaseSource : IDisposable
     {

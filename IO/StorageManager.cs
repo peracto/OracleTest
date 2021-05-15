@@ -5,13 +5,13 @@ using Snowflake.Data.Client;
 using Snowflake.FileStream;
 using Snowflake.FileStream.Model;
 
-namespace OracleTest.IO
+namespace Bourne.BatchLoader.IO
 {
-    public class SnowflakeCredentialManager
+    public class StorageManager
     {
-        private SnowflakeDbConnection _connection;
+        private readonly SnowflakeDbConnection _connection;
 
-        public SnowflakeCredentialManager(SnowflakeDbConnection connection)
+        public StorageManager(SnowflakeDbConnection connection)
         {
             _connection = connection;
         }

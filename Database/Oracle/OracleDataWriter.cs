@@ -1,10 +1,10 @@
-﻿using Oracle.ManagedDataAccess.Client;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Oracle.ManagedDataAccess.Client;
 
-namespace OracleTest.Database.Oracle
+namespace Bourne.BatchLoader.Database.Oracle
 {
     internal class OracleDataWriter : IReaderWriter
     {
@@ -25,9 +25,7 @@ namespace OracleTest.Database.Oracle
             _types = outputs.ToArray();
         }
 
-        bool IReaderWriter.Read() => _reader.Read();
         Task<bool> IReaderWriter.ReadAsync() => _reader.ReadAsync();
-
 
         int IReaderWriter.RowsWritten => _rowsWritten;
 
@@ -39,9 +37,11 @@ namespace OracleTest.Database.Oracle
                 writer.Write(',');
                 _types[i](writer, _reader, i);
             }
+
             _rowsWritten++;
             writer.WriteLine();
         }
+
         void IReaderWriter.WriteHeaders(TextWriter writer)
         {
             for (var i = 0; i < _types.Length; i++)
@@ -51,6 +51,7 @@ namespace OracleTest.Database.Oracle
                 writer.Write(_reader.GetName(i));
                 writer.Write('"');
             }
+
             writer.WriteLine();
         }
 
@@ -81,7 +82,8 @@ namespace OracleTest.Database.Oracle
         {
             var ts1 = rdr.GetOracleDate(i);
             if (ts1.IsNull) return;
-            writer.Write($"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}\"");
+            writer.Write(
+                $"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}\"");
         }
 
         private static void OutputInt16(TextWriter writer, OracleDataReader rdr, int i)
@@ -106,14 +108,16 @@ namespace OracleTest.Database.Oracle
         {
             var ts1 = rdr.GetOracleTimeStamp(i);
             if (ts1.IsNull) return;
-            writer.Write($"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}.{ts1.Nanosecond}\"");
+            writer.Write(
+                $"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}.{ts1.Nanosecond}\"");
         }
 
         private static void OutputTimeStampTz(TextWriter writer, OracleDataReader rdr, int i)
         {
             var ts1 = rdr.GetOracleTimeStampTZ(i);
             if (ts1.IsNull) return;
-            writer.WriteLine($"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}.{ts1.Nanosecond} {ts1.TimeZone}\"");
+            writer.WriteLine(
+                $"\"{ts1.Year:D4}-{ts1.Month:D2}-{ts1.Day:D2} {ts1.Hour:D2}:{ts1.Minute:D2}:{ts1.Second:D2}.{ts1.Nanosecond} {ts1.TimeZone}\"");
         }
 
         private static void OutputDecimal(TextWriter writer, OracleDataReader rdr, int i)
@@ -132,22 +136,15 @@ namespace OracleTest.Database.Oracle
         private static void OutputString(TextWriter writer, OracleDataReader rdr, int i)
         {
             if (rdr.IsDBNull(i)) return;
-            var s = rdr.GetString(i);
-            if (s.IndexOf('"') == -1)
-            {
-                writer.Write('"');
-                writer.Write(s);
-                writer.Write('"');
-                return;
-            }
             writer.Write('"');
-            writer.Write(s.Replace("\"", "\"\""));
+            writer.Write(EncodeString(rdr.GetString(i)));
             writer.Write('"');
         }
 
+        private static string EncodeString(string value)
+            => value.IndexOf('"') == -1 ? value : value.Replace("\"", "\"\"");
+
         public void Dispose()
-        {
-            _reader.Dispose();
-        }
+            => _reader.Dispose();
     }
 }

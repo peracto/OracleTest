@@ -1,24 +1,22 @@
 ﻿using Snowflake.FileStream;
 
-namespace OracleTest.Tasks
+namespace Bourne.BatchLoader.Model
 {
-    public class OutputFile
+    internal class UploadItem
     {
         public string BucketKey { get; }
         public string Digest { get; }
         public string Filename { get; }
         public string LifetimeKey { get; }
+        public IPutFile Storage { get; }
 
-        public IPutFile PutFile { get; }
-
-        public OutputFile(IPutFile putFile,string lifetimeKey, string bucketKey, string digest, string filename)
+        public UploadItem(IPutFile storage,string lifetimeKey, string bucketKey, string digest, string filename)
         {
-            PutFile = putFile;
+            Storage = storage;
             BucketKey = bucketKey;
             Digest = digest;
             Filename = filename;
             LifetimeKey = lifetimeKey;
         }
     }
-
 }

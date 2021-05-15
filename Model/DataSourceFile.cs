@@ -1,21 +1,15 @@
-﻿using OracleTest.Database;
-
-namespace OracleTest.Model
+﻿namespace Bourne.BatchLoader.Model
 {
-    internal class DataSourceFile : PutFileItem
+    internal class DataSourceFile 
     {
-        public readonly DataSource DataSource;
         public int RowCount { get; }
-
         public string LifetimeKey { get; }
-
-
-        public DataSourceFile(DataSource dataSource, string filename, int rowCount)
-            : base(filename)
+        public string Filename { get; }
+        public DataSourceFile(string filename, string lifetimeKey, int rowCount)
         {
-            DataSource = dataSource;
             RowCount = rowCount;
-            LifetimeKey = dataSource.FullName;
+            LifetimeKey = lifetimeKey;
+            Filename = filename;
         }
     }
 }

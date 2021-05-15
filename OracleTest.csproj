@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Bourne.BatchLoader</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,9 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="lib\pipeline\Bourne.Common.csproj" />
     <ProjectReference Include="lib\snowflake-connector-net\Snowflake.Data\Snowflake.Data.csproj" />
-    <ProjectReference Include="lib\snowflake-file-extensions\snowflake-file-extensions\snowflake-file-extensions.csproj" />
+    <ProjectReference Include="lib\snowflake-file-extensions\snowflake-file-extensions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

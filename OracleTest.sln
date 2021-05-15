@@ -12,11 +12,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snowflake.Data", "lib\snowflake-connector-net\Snowflake.Data\Snowflake.Data.csproj", "{17B100D8-2750-409D-A2F4-6FD26E8F8F27}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "snowflake-file-extensions", "lib\snowflake-file-extensions\snowflake-file-extensions\snowflake-file-extensions.csproj", "{F6DC18BC-B796-462E-9A71-6F2E52E32CAA}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bourne.Common", "lib\pipeline\Bourne.Common.csproj", "{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Submodules", "Submodules", "{26B84BAF-DA74-4938-9648-655BF533204C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "snowflake-file-extensions", "lib\snowflake-file-extensions\snowflake-file-extensions.csproj", "{8FB91156-4DCD-4377-9011-3431C10BEE0B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,14 +32,14 @@ Global
 		{17B100D8-2750-409D-A2F4-6FD26E8F8F27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17B100D8-2750-409D-A2F4-6FD26E8F8F27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17B100D8-2750-409D-A2F4-6FD26E8F8F27}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F6DC18BC-B796-462E-9A71-6F2E52E32CAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F6DC18BC-B796-462E-9A71-6F2E52E32CAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F6DC18BC-B796-462E-9A71-6F2E52E32CAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F6DC18BC-B796-462E-9A71-6F2E52E32CAA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FB91156-4DCD-4377-9011-3431C10BEE0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FB91156-4DCD-4377-9011-3431C10BEE0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FB91156-4DCD-4377-9011-3431C10BEE0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FB91156-4DCD-4377-9011-3431C10BEE0B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,7 +49,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BDAAE24F-8F4A-4D34-B561-4E5C5E9D4389} = {26B84BAF-DA74-4938-9648-655BF533204C}
-		{F6DC18BC-B796-462E-9A71-6F2E52E32CAA} = {26B84BAF-DA74-4938-9648-655BF533204C}
 		{17B100D8-2750-409D-A2F4-6FD26E8F8F27} = {26B84BAF-DA74-4938-9648-655BF533204C}
+		{8FB91156-4DCD-4377-9011-3431C10BEE0B} = {26B84BAF-DA74-4938-9648-655BF533204C}
 	EndGlobalSection
 EndGlobal

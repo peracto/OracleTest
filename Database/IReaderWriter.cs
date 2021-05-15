@@ -2,11 +2,10 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace OracleTest.Database
+namespace Bourne.BatchLoader.Database
 {
     internal interface IReaderWriter : IDisposable
     {
-        bool Read();
         Task<bool> ReadAsync();
         void Write(TextWriter writer);
         void WriteHeaders(TextWriter writer);

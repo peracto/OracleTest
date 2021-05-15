@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Newtonsoft.Json;
 
-namespace OracleTest
+namespace Bourne.BatchLoader
 {
+    // ReSharper disable once ArrangeTypeModifiers
     static class Program
     {
+        // ReSharper disable once ArrangeTypeMemberModifiers
         static Task Main(string[] args)
         {
             var config = FileHelpers.ReadJson<AppConfig>("./app-config.json");
@@ -13,10 +14,10 @@ namespace OracleTest
             return App.Execute(
                 config.ConnectionString,
                 config.DatabaseConnection
-                );
+            );
         }
 
-        class AppConfig
+        private class AppConfig
         {
             [JsonProperty("connectionString")]
             public string ConnectionString;

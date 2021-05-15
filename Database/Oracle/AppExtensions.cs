@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using Oracle.ManagedDataAccess.Types;
 
-namespace OracleTest.Database.Oracle
+namespace Bourne.BatchLoader.Database.Oracle
 {
     internal static class AppExtensions
     {

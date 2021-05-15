@@ -1,10 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using Bourne.Common.Pipeline;
-using OracleTest.Database;
-using OracleTest.Model;
+using Bourne.BatchLoader.Model;
 
-namespace OracleTest
+namespace Bourne.BatchLoader
 {
     internal static class Primer
     {
@@ -12,20 +9,20 @@ namespace OracleTest
         {
             foreach (var dataSource in sources)
             {
-                int sliceIndex = 0;
+                var sliceIndex = 0;
                 foreach (var slice in GetDataSlices(dataSource))
-                    yield return new DataSourceSlice(dataSource, $"{dataSource.FullName}_{++sliceIndex:D3}", slice, dataSource.LifetimeKey);
+                    yield return new DataSourceSlice($"{dataSource.LifetimeKey}_{++sliceIndex:D3}", slice, dataSource.LifetimeKey);
             }
         }
 
         public static IEnumerable<DataSource> GetSources()
         {
-            yield return new DataSource("SCV_BUTLINS", "BOOKING_GUEST");
+            yield return new DataSource("SCV_BUTLINS.BOOKING_GUEST");
         }
 
         private static IEnumerable<string> GetDataSlices(DataSource dataSource)
         {
-            int size = 10;
+            const int size = 10;
             for (var i = 0; i < size; i++)
                 yield return $"select * from {dataSource.FullName} where mod(booking_id,{size}) = {i}";
         }
