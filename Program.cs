@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using Newtonsoft.Json;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace OracleTest
 {
@@ -6,10 +8,21 @@ namespace OracleTest
     {
         static Task Main(string[] args)
         {
+            var config = FileHelpers.ReadJson<AppConfig>("./app-config.json");
+
             return App.Execute(
-                @"account=xxxxxx;host=xxxxx.eu-west-1.snowflakecomputing.com;user=xxxxxx@xxxxxxx;db=demo_db;schema=public;role=sysadmin;authenticator=externalbrowser",
-                "User Id=xxxxx;Password=xxxxx;Data Source=xxxxx/xxxxxx"
+                config.ConnectionString,
+                config.DatabaseConnection
                 );
         }
+
+        class AppConfig
+        {
+            [JsonProperty("connectionString")]
+            public string ConnectionString;
+            [JsonProperty("databaseConnection")]
+            public string DatabaseConnection;
+        }
+
     }
 }

@@ -1,13 +1,14 @@
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace OracleTest { 
+namespace OracleTest {
 
     internal static class FileHelpers
     {
         public static bool IsCompressed(string file)
-            =>  file.EndsWith(".gz") || file.EndsWith(".brotli") || file.EndsWith(".br");
+            => file.EndsWith(".gz") || file.EndsWith(".brotli") || file.EndsWith(".br");
 
         public static string GetSha256Digest(string path)
         {
@@ -17,5 +18,8 @@ namespace OracleTest {
             stream.Close();
             return Convert.ToBase64String(hash);
         }
+
+        public static T ReadJson<T>(string name)
+            => JsonConvert.DeserializeObject<T>(File.ReadAllText(name));
     }
 }

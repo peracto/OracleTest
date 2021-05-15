@@ -2,15 +2,20 @@
 
 namespace OracleTest.Model
 {
-    internal class DataSourceFile  : PutFileItem
+    internal class DataSourceFile : PutFileItem
     {
         public readonly DataSource DataSource;
-        public readonly int RowCount;
+        public int RowCount { get; }
+
+        public string LifetimeKey { get; }
+
+
         public DataSourceFile(DataSource dataSource, string filename, int rowCount)
-            :base(filename)
+            : base(filename)
         {
             DataSource = dataSource;
             RowCount = rowCount;
+            LifetimeKey = dataSource.FullName;
         }
     }
 }

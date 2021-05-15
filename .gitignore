@@ -491,3 +491,4 @@ msbuild.wrn
 *.pdb
 
 /OracleTest.sln.DotSettings
+/app-config.json

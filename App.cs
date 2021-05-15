@@ -9,6 +9,7 @@ using OracleTest.IO;
 using OracleTest.Model;
 using OracleTest.Tasks;
 using Snowflake.Data.Client;
+using System.Linq;
 
 namespace OracleTest
 {
@@ -20,29 +21,33 @@ namespace OracleTest
 
             var snowflakeConnection = await CreateSnowflakeConnection(cs);
             using var tokenSource = new CancellationTokenSource();
-            
             var token = tokenSource.Token;
-
-            using var con = OracleDatabaseSource.Create(os);
+            using var databaseConnection = OracleDatabaseSource.Create(os);
 
             using var tablesQueue = new PipelineQueue<DataSourceSlice>(token);
-            using var compressQueue = new PipelineQueue<DataSourceFile>(token);
-            using var putQueue = new PipelineQueue<IReflectPipelineTask<DataSourceFile>>(token);
-            using var resolveQueue = new PipelineQueue<DataSourceFile>(token);
-            Debug.Assert(tablesQueue != null, nameof(tablesQueue) + " != null");
-            Debug.Assert(compressQueue != null, nameof(compressQueue) + " != null");
-            Debug.Assert(putQueue != null, nameof(putQueue) + " != null");
-            Debug.Assert(resolveQueue != null, nameof(resolveQueue) + " != null");
+            using var processQueue = new PipelineQueue<DataSourceFile>(token);
+            using var uploadQueue = new PipelineQueue<OutputFile>(token);
+            using var resolveQueue = new PipelineQueue<DataSource>(token);
 
-            var sfCred = SnowflakeCredential.Create(snowflakeConnection);
+            var sources = Primer.GetSources().ToDictionary(k => k.LifetimeKey);
+
+            var lifetimeController = new LifetimeReference<string>(
+                v => resolveQueue.Enqueue(sources[v])
+            );
+
+            var sfCred = new SnowflakeCredentialManager(snowflakeConnection);
 
             var tableTasks = tablesQueue.CreatePipelineTasks(
                 count: 4,
-                pipeFactory: () => ExportPipelineTask.Create(
+                pipeFactory: () => new ExportPipelineTask(
                     // ReSharper disable once AccessToDisposedClosure
-                    connection: con,
+                    connection: databaseConnection,
                     // ReSharper disable once AccessToDisposedClosure
-                    callback: file => compressQueue.Enqueue(file),
+                    callback: file => {
+                        lifetimeController.AddRef(file.LifetimeKey);
+                        processQueue.Enqueue(file);
+                    },
+                    trigger: slice => lifetimeController.Release(slice.LifetimeKey),
                     feedback: (q, f, a, b, s) =>
                     {
                         if (s) Console.WriteLine(@"{0,-40}:Read {1,16} reader:{2,16}", q.DataSource.FullName, a, b);
@@ -50,36 +55,40 @@ namespace OracleTest
                 )
             );
 
-            var compressTasks = compressQueue.CreatePipelineTasks(
+            var compressTasks = processQueue.CreatePipelineTasks(
                 count: 1,
-                pipeFactory: () => ProcessPipelineTask.Create(
+                pipeFactory: () => new ProcessPipelineTask(
                     sfCred,
                     // ReSharper disable once AccessToDisposedClosure
-                    callback: batch => putQueue.Enqueue(batch)
+                    callback: batch => uploadQueue.Enqueue(batch)
                 )
             );
 
-            var putTasks = putQueue.CreatePipelineTasks(
+            var uploadTasks = uploadQueue.CreatePipelineTasks(
                 count: 4,
-                pipeFactory: () => ReflectPipelineTask<DataSourceFile>.Create(
+                pipeFactory: () => new UploadPipelineTask(
                     // ReSharper disable once AccessToDisposedClosure
-                    callback: batch => resolveQueue.Enqueue(batch)
+                    callback: batch => lifetimeController.Release(batch.LifetimeKey)
                 )
             );
 
             var resolveTasks = resolveQueue.CreatePipelineTasks(
                 count: 1,
-                pipeFactory: () => ResolvePipelineTask.Create(
+                pipeFactory: () => new ResolvePipelineTask(
                     callback: batch => Console.WriteLine($@"**************** Done File {batch}")
                 )
             );
 
-            var controller = new DataSourceController();
 
-            Primer.Prime(controller, tablesQueue);
+            foreach (var item in Primer.Prime(sources.Values))
+            {
+                lifetimeController.AddRef(item.LifetimeKey);
+                tablesQueue.Enqueue(item);
+            }
+
             await tableTasks.WaitAll();
             await compressTasks.WaitAll();
-            await putTasks.WaitAll();
+            await uploadTasks.WaitAll();
             await resolveTasks.WaitAll();
 
             Console.WriteLine($@"start:{now} end:{DateTime.Now} diff:{DateTime.Now - now}");
