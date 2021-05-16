@@ -11,22 +11,25 @@ namespace Bourne.BatchLoader.Tasks
     {
         private readonly IDatabaseSource _connection;
         private readonly Action<ExportFeedback> _feedback;
-        private readonly int _maxFileSize = 20 * 1024 * 1024;
+        private readonly Action<ExportFeedback> _emitFile;
 
         public ExportPipelineTask(
             IDatabaseSource connection,
+            Action<ExportFeedback> emitFile,
             Action<ExportFeedback> feedback
         )
         {
             _connection = connection;
             _feedback = feedback;
+            _emitFile = emitFile;
         }
 
         public override async Task<DataSourceSlice> Execute(DataSourceSlice slice)
         {
-            var cycler = new FileCycler(i => $@"c:\temp\IMPORT_{slice.SourceGroup}_{i:D4}.csv");
+            var batchFileSize = slice.BatchFileSize;
 
-            using var rdr = await _connection.CreateReader($@"select * from ({slice.Query}) a where rownum < 10");
+            var cycler = new FileCycler(i => $@"c:\temp\IMPORT_{slice.SourceGroup}_{i:D4}.csv");
+            using var rdr = await _connection.CreateReader($@"select * from ({slice.Query}) a where rownum <= 10000000");
 
             while (await rdr.ReadAsync())
             {
@@ -46,7 +49,7 @@ namespace Bourne.BatchLoader.Tasks
                     do
                     {
                         rdr.Write(writer);
-                        if (++rows % 200000 != 0) continue;
+                        if (++rows % 1000000 != 0) continue;
                         _feedback?.Invoke(
                             new ExportFeedback(
                                 slice,
@@ -56,16 +59,18 @@ namespace Bourne.BatchLoader.Tasks
                                 ExportFeedbackState.Active
                             )
                         );
-                    } while (stream.Position <= _maxFileSize && await rdr.ReadAsync());
+                    } while (stream.Position <= batchFileSize && await rdr.ReadAsync());
                 }
 
-                _feedback?.Invoke(new ExportFeedback(
+                var feedback= new ExportFeedback(
                     slice,
                     cycler.CurrentFileName,
                     rdr.RowsWritten,
                     rows,
                     ExportFeedbackState.Complete
-                ));
+                );
+                _emitFile?.Invoke(feedback);
+                _feedback?.Invoke(feedback);
             }
             return slice;
         }

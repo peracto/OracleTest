@@ -11,10 +11,13 @@ namespace Bourne.BatchLoader.Pipeline
         private readonly SemaphoreSlim _semaphore;
         private readonly CancellationToken _cancellationToken;
         private  int _subscribeCount;
-        public PipelineQueue(CancellationToken token)
+        private readonly string _tag;
+
+        public PipelineQueue(string tag, CancellationToken token)
         {
             _cancellationToken = token;
             _semaphore = new SemaphoreSlim(0);
+            _tag = tag;
         }
 
         public void Enqueue(T e)
@@ -36,7 +39,7 @@ namespace Bourne.BatchLoader.Pipeline
 
         public void Complete()
         {
-            Console.Out.WriteLineAsync($"Completing {_subscribeCount}");
+            Console.Out.WriteLineAsync($"Completing {_tag}::{_subscribeCount}");
             var i = _subscribeCount;
             if (i > 0)
                 _semaphore.Release(i);

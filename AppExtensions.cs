@@ -27,6 +27,7 @@ namespace Bourne.BatchLoader
                     }
                     await p.End();
                 });
+                Console.WriteLine($"Completed Pump {queue}::{i}");
             }
             return tasks;
         }

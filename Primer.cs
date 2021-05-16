@@ -11,20 +11,23 @@ namespace Bourne.BatchLoader
             {
                 var sliceIndex = 0;
                 foreach (var slice in GetDataSlices(dataSource))
-                    yield return new DataSourceSlice($"{dataSource.LifetimeKey}_{++sliceIndex:D3}", slice, dataSource.LifetimeKey);
+                    yield return new DataSourceSlice($"{dataSource.LifetimeKey}_{++sliceIndex:D3}", slice, dataSource.LifetimeKey, dataSource.BatchFileSize);
             }
         }
 
         public static IEnumerable<DataSource> GetSources()
         {
-            yield return new DataSource("SCV_BUTLINS.BOOKING_GUEST");
+            int batchFileSize = 20 * 1024 * 1024;
+            yield return new DataSource("SCV_BUTLINS.MOSAIC_POSTCODE","MOSAIC_REF", 4, batchFileSize);
+            yield return new DataSource("SCV_BUTLINS.PREMIER_CLUB","CLIENT_ID", 2, batchFileSize);
+            yield return new DataSource("SCV_BUTLINS.MOSAIC_POSTCODE_DPS","MOSAIC_REF", 4, batchFileSize);
+            yield return new DataSource("SCV_BUTLINS.BOOKING_GUEST", "BOOKING_ID", 4, batchFileSize);
         }
 
         private static IEnumerable<string> GetDataSlices(DataSource dataSource)
         {
-            const int size = 10;
-            for (var i = 0; i < size; i++)
-                yield return $"select * from {dataSource.FullName} where mod(booking_id,{size}) = {i}";
+            for (var i = 0; i < dataSource.SplitSize; i++)
+                yield return $"select * from {dataSource.FullName} where mod({dataSource.SplitKey},{dataSource.SplitSize}) = {i}";
         }
 
         /*

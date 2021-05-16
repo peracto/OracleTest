@@ -15,21 +15,20 @@ namespace Bourne.BatchLoader
 {
     internal static class App
     {
-        public static async Task Execute(string cs, string os)
+        public static async Task Execute(string targetConnectionString, string sourceConnectionString)
         {
             var now = DateTime.Now;
-
-            await using var snowflakeConnection = await CreateSnowflakeConnection(cs);
             using var tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
-            using var databaseConnection = OracleDatabaseSource.Create(os);
+
+            await using var snowflakeConnection = await CreateSnowflakeConnection(targetConnectionString);
+            using var databaseConnection = OracleDatabaseSource.Create(sourceConnectionString);
+            using var tablesQueue = new PipelineQueue<DataSourceSlice>("tables",token);
+            using var processQueue = new PipelineQueue<DataSourceFile>("process",token);
+            using var uploadQueue = new PipelineQueue<UploadItem>("upload", token);
+            using var resolveQueue = new PipelineQueue<DataSource>("resolve", token);
 
             var sources = Primer.GetSources().ToDictionary(k => k.LifetimeKey);
-
-            using var tablesQueue = new PipelineQueue<DataSourceSlice>(token);
-            using var processQueue = new PipelineQueue<DataSourceFile>(token);
-            using var uploadQueue = new PipelineQueue<UploadItem>(token);
-            using var resolveQueue = new PipelineQueue<DataSource>(token);
 
             await DoIt(
                 new StorageManager(snowflakeConnection),
@@ -63,32 +62,22 @@ namespace Bourne.BatchLoader
             var tableTasks = tablesQueue.CreatePump(
                 pipeFactory: () => new ExportPipelineTask(
                     connection: databaseConnection,
+                    emitFile: state=>
+                    {
+                        lifetimeController.AddRef(state.DataSourceSlice.LifetimeKey);
+                        processQueue.Enqueue(
+                            new DataSourceFile(
+                                state.Filename,
+                                state.DataSourceSlice.LifetimeKey,
+                                state.RowCount)
+                        );
+                    },
                     feedback: state =>
                     {
-                        switch (state.State)
-                        {
-                            case ExportPipelineTask.ExportFeedbackState.Start:
-                                break;
-                            case ExportPipelineTask.ExportFeedbackState.Active:
-                                Console.Out.WriteLine(
-                                    $@"{state.Filename,-40}:Rows:{state.RowCount:16}:TotalRows:{state.TotalRowCount,16}"
-                                );
-                                break;
-                            case ExportPipelineTask.ExportFeedbackState.Complete:
-                                Console.Out.WriteLine(
-                                    $@"{state.Filename,-40}:Rows:{state.RowCount:16}:TotalRows:{state.TotalRowCount,16}"
-                                );
-                                lifetimeController.AddRef(state.DataSourceSlice.LifetimeKey);
-                                processQueue.Enqueue(
-                                    new DataSourceFile(
-                                        state.Filename,
-                                        state.DataSourceSlice.LifetimeKey,
-                                        state.RowCount)
-                                );
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
+                        if (state.State != ExportPipelineTask.ExportFeedbackState.Complete) return;
+                        Console.Out.WriteLine(
+                            $@"{state.Filename:-40}:State:{state.State}:Rows:{state.RowCount:D16}:TotalRows:{state.TotalRowCount:D16}"
+                        );
                     }
                 ),
                 threadCount: 4,
